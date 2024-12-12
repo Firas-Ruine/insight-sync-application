@@ -43,7 +43,7 @@ jobs:
         run: |
           echo "${{ secrets.GDRIVE_SERVICE_ACCOUNT_BASE64 }}" | base64 --decode > google_services.json
 
-      # Step 6: Configure DVC Remote
+      # Step 6: Configure DVC Remote for Google Drive
       - name: Configure DVC Remote
         run: |
           dvc remote modify storage gdrive_use_service_account true
