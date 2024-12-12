@@ -1,6 +1,13 @@
+fastapi
+uvicorn
 pandas
+scikit-learn
 joblib
 numpy
+requests
+lxml_html_clean
+facebook-scraper
+google-api-python-client
 neattext
 flask
 mlflow

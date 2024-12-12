@@ -5,24 +5,40 @@ import csv
 import re
 import psycopg2
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
 MODEL_PATH = 'src/models/emotion_classifier_pipe_lr.pkl'
-model = joblib.load(MODEL_PATH)
+try:
+    model = joblib.load(MODEL_PATH)
+    logger.info("Model loaded successfully.")
+except Exception as e:
+    logger.error(f"Failed to load model: {e}")
+    model = None
 
-API_KEY = 'AIzaSyDTWzUmomxive8x9Q_GYmF9CTxmzDJ2qVg'
+API_KEY = os.getenv("YOUTUBE_API_KEY", "AIzaSyDTWzUmomxive8x9Q_GYmF9CTxmzDJ2qVg")
 youtube = build('youtube', 'v3', developerKey=API_KEY)
 
 def get_db_connection():
-    return psycopg2.connect(
-        dbname=os.getenv("YOUTUBE_DB"),
-        user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD"),
-        host="postgres",
-        port="5432"
-    )
-    
+    try:
+        conn = psycopg2.connect(
+            dbname=os.getenv("YOUTUBE_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD"),
+            host=os.getenv("POSTGRES_HOST", "postgres"),
+            port=os.getenv("POSTGRES_PORT", "5432")
+        )
+        logger.debug("Database connection established.")
+        return conn
+    except Exception as e:
+        logger.error(f"Failed to connect to the database: {e}")
+        raise
+
 def extract_video_id(url):
     """
     Extracts the video ID from a YouTube URL.
@@ -33,16 +49,21 @@ def extract_video_id(url):
 
 @app.route('/')
 def home():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT video_id, video_title, positive_count, negative_count, neutral_count, created_at
-        FROM youtube_video_sentiments
-        ORDER BY created_at DESC;
-    """)
-    data = cur.fetchall()
-    cur.close()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT video_id, video_title, positive_count, negative_count, neutral_count, created_at
+            FROM youtube_video_sentiments
+            ORDER BY created_at DESC;
+        """)
+        data = cur.fetchall()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error fetching data for home page: {e}")
+        flash("An error occurred while loading the homepage data.", "danger")
+        data = []
     
     return render_template('home.html', data=data)
 
@@ -64,15 +85,14 @@ def youtube_route():
             if video_id:
                 try:
                     # Log the URL into the CSV file
+                    csv_file_path = 'src/data_ingestion/youtube_comments/inputs/channels.csv'
+                    existing_urls = set()
                     try:
-                        csv_file_path = 'src/data_ingestion/youtube_comments/inputs/channels.csv'
                         with open(csv_file_path, 'r', encoding='utf-8') as csvfile:
                             existing_urls = {row[0] for row in csv.reader(csvfile)}
                     except FileNotFoundError:
-                        # If the file doesn't exist, create an empty set
-                        existing_urls = set()
+                        logger.warning("CSV file not found. Creating a new one.")
 
-                    # Add the URL only if it doesn't already exist
                     if youtube_url not in existing_urls:
                         with open(csv_file_path, 'a', newline='', encoding='utf-8') as csvfile:
                             writer = csv.writer(csvfile)
@@ -123,11 +143,11 @@ def youtube_route():
                     cur.close()
                     conn.close()
 
-                    # Flash message with sentiment counts
                     flash(f"Comments fetched successfully for '{video_title}' (ID: {video_id})! Positive: {positive_count}, Negative: {negative_count}, Neutral: {neutral_count}", "success")
 
                 except Exception as e:
-                    flash(f"Error fetching comments: {str(e)}", "danger")
+                    logger.error(f"Error fetching comments: {e}")
+                    flash(f"Error fetching comments: {e}", "danger")
             else:
                 flash("Invalid YouTube URL. Please check and try again.", "danger")
         else:
@@ -141,23 +161,28 @@ def youtube_route():
     return render_template('youtube.html', comments=comments, sentiment_data=sentiment_data)
 
 def initialize_database():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS youtube_video_sentiments (
-            id SERIAL PRIMARY KEY,
-            video_id VARCHAR(255) NOT NULL,
-            video_title TEXT NOT NULL,
-            positive_count INT NOT NULL,
-            negative_count INT NOT NULL,
-            neutral_count INT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    """)
-    conn.commit()
-    cur.close()
-    conn.close()
-    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS youtube_video_sentiments (
+                id SERIAL PRIMARY KEY,
+                video_id VARCHAR(255) NOT NULL,
+                video_title TEXT NOT NULL,
+                positive_count INT NOT NULL,
+                negative_count INT NOT NULL,
+                neutral_count INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info("Database initialized successfully.")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        raise
+
 if __name__ == "__main__":
     initialize_database()
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0")
