@@ -48,24 +48,31 @@ jobs:
         run: |
           dvc remote modify storage gdrive_use_service_account true
           dvc remote modify storage gdrive_service_account_json_file_path google_services.json
-          dvc remote modify storage gdrive_service_account_user_email "dvc-remote@dvc-remote-444113.iam.gserviceaccount.com"
 
       # Step 7: Pull dataset from DVC remote
       - name: Pull dataset
         run: dvc pull
 
-      # Step 8: Run local preprocessing
-      - name: Run local preprocessing
+      # Step 8: Train model locally
+      - name: Train model locally
         run: |
           python src/data_ingestion/youtube_comments/main.py
           python src/scripts/main.py
+          python src/models/train_model.py
           dvc add data/train.csv
           git add data/train.csv.dvc
           git commit -m "Update dataset"
           dvc push
 
-      # Step 9: Deploy to server
-      - name: Deploy to server
+      # Step 9: Transfer trained model to server
+      - name: Transfer trained model to server
+        uses: appleboy/scp-action@v0.1.1
+        with:
+          source: src/models/emotion_classifier_pipe_lr.pkl
+          target: ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/emotion_classifier_pipe_lr.pkl
+
+      # Step 10: Copy model to container and clean up
+      - name: Deploy and update model in container
         uses: appleboy/ssh-action@v0.1.9
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -74,24 +81,18 @@ jobs:
           script: |
             set -e
 
-            # Navigate to the application directory on the server
-            cd docker/experiments/insight-sync-application
+            # Check if the model file exists in the container
+            if docker exec flask_app_1 test -f /app/src/models/emotion_classifier_pipe_lr.pkl; then
+              echo "Model file already exists. Backing up..."
+              docker exec flask_app_1 mv /app/src/models/emotion_classifier_pipe_lr.pkl /app/src/models/emotion_classifier_pipe_lr_backup_$(date +%Y%m%d%H%M%S).pkl
+            fi
 
-            # Pull the latest changes
-            git pull origin main
+            # Copy the new model file to the container
+            docker cp /tmp/emotion_classifier_pipe_lr.pkl flask_app_1:/app/src/models/emotion_classifier_pipe_lr.pkl
 
-            # Rebuild and redeploy Application services
+            # Remove temporary model file from the server
+            rm /tmp/emotion_classifier_pipe_lr.pkl
+
+            # Rebuild and redeploy the application container
+            cd docker/experiments/insight-sync-application 
             docker compose up -d --build
-
-            # Run training commands inside the app container
-            docker exec flask_app_1 bash -c "
-              cd /app &&
-              dvc pull &&
-              python src/data_ingestion/youtube_comments/main.py &&
-              python src/scripts/main.py &&
-              python src/models/train_model.py &&
-              dvc add data/train.csv &&
-              git add data/train.csv.dvc &&
-              git commit -m 'Update dataset' &&
-              dvc push
-            "
