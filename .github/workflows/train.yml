@@ -152,6 +152,6 @@ jobs:
           script: |
             set -e
             echo "Rebuilding and redeploying the application..."
-            cd /path/to/your/docker-compose-directory
+            cd docker/experiments/insight-sync-application
             docker compose up -d --build
             echo "Application redeployed successfully."
