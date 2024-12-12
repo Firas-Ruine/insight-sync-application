@@ -17,13 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up Git user identity
-      - name: Configure Git User
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-
-      # Step 3: Git pull on the server
+      # Step 2: Git pull on the server
       - name: Git pull on server
         uses: appleboy/ssh-action@v0.1.9
         with:
@@ -32,13 +26,13 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             set -e
-
-            # Navigate to the application directory and pull latest changes
+            echo "Pulling latest changes from git repository..."
             cd docker/experiments/insight-sync-application
             git pull origin main
+            echo "Git pull completed successfully."
 
-      # Step 4: Execute commands directly inside the container on the server
-      - name: Execute commands in container
+      # Step 3: Upgrade pip inside container
+      - name: Upgrade pip inside container
         uses: appleboy/ssh-action@v0.1.9
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -46,27 +40,118 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             set -e
+            echo "Upgrading pip..."
+            docker exec flask_app_1 bash -c "python -m pip install --upgrade pip"
+            echo "Pip upgrade completed successfully."
 
-            # Run the training process inside the container
-            docker exec flask_app_1 bash -c "
-              python -m pip install --upgrade pip && \
-              pip install dvc[all] && \
-              pip install -r /app/requirements.txt && \
-              echo '${{ secrets.GDRIVE_SERVICE_ACCOUNT_BASE64 }}' | base64 --decode > /app/google_services.json && \
+      # Step 4: Install dependencies inside container
+      - name: Install dependencies inside container
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            echo "Installing dependencies..."
+            docker exec flask_app_1 bash -c "pip install dvc[all] && pip install -r /app/requirements.txt"
+            echo "Dependencies installed successfully."
+
+      # Step 5: Configure DVC for Google Drive
+      - name: Configure DVC for Google Drive
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            echo "Configuring DVC for Google Drive..."
+            docker exec flask_app_1 bash -c "echo '${{ secrets.GDRIVE_SERVICE_ACCOUNT_BASE64 }}' | base64 --decode > /app/google_services.json && \
               dvc remote modify storage gdrive_use_service_account true && \
-              dvc remote modify storage gdrive_service_account_json_file_path /app/google_services.json && \
-              dvc pull && \
-              python /app/src/data_ingestion/youtube_comments/main.py && \
-              python /app/src/scripts/main.py && \
-              python /app/src/models/train_model.py && \
-              git config --global user.name 'GitHub Actions' && \
+              dvc remote modify storage gdrive_service_account_json_file_path /app/google_services.json"
+            echo "DVC configuration completed successfully."
+
+      # Step 6: Pull dataset using DVC
+      - name: Pull dataset using DVC
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            echo "Pulling dataset using DVC..."
+            docker exec flask_app_1 bash -c "dvc pull"
+            echo "Dataset pulled successfully."
+
+      # Step 7: Run data ingestion script
+      - name: Run data ingestion script
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            echo "Running data ingestion script..."
+            docker exec flask_app_1 bash -c "python /app/src/data_ingestion/youtube_comments/main.py"
+            echo "Data ingestion completed successfully."
+
+      # Step 8: Run data processing script
+      - name: Run data processing script
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            echo "Running data processing script..."
+            docker exec flask_app_1 bash -c "python /app/src/scripts/main.py"
+            echo "Data processing completed successfully."
+
+      # Step 9: Train the model
+      - name: Train the model
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            echo "Training the model..."
+            docker exec flask_app_1 bash -c "python /app/src/models/train_model.py"
+            echo "Model training completed successfully."
+
+      # Step 10: Add and push updated dataset
+      - name: Add and push updated dataset
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            echo "Adding and pushing updated dataset..."
+            docker exec flask_app_1 bash -c "git config --global user.name 'GitHub Actions' && \
               git config --global user.email 'actions@github.com' && \
               dvc add /app/data/train.csv && \
               git add /app/data/train.csv.dvc && \
               git commit -m 'Update dataset' && \
-              dvc push
-            "
+              dvc push"
+            echo "Dataset update pushed successfully."
 
-            # Rebuild and redeploy the application container
-            cd docker/experiments/insight-sync-application
+      # Step 11: Rebuild and redeploy the application
+      - name: Rebuild and redeploy application
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            echo "Rebuilding and redeploying the application..."
+            cd /path/to/your/docker-compose-directory
             docker compose up -d --build
+            echo "Application redeployed successfully."
