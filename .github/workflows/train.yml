@@ -64,6 +64,7 @@ jobs:
               dvc add /app/data/train.csv && \
               git add /app/data/train.csv.dvc && \
               git commit -m 'Update dataset' && \
+              git push origin main && \
               dvc push
             "
 
