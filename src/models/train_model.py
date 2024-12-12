@@ -25,7 +25,7 @@ import mlflow.sklearn
 
 # Set MLflow Tracking URI and Experiment
 MLFLOW_TRACKING_URI = "http://mlflow_server:5000" 
-MLFLOW_EXPERIMENT_NAME = "emotion_detection_experiment"
+MLFLOW_EXPERIMENT_NAME = "application_experiment"
 
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
