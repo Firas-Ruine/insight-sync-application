@@ -59,6 +59,8 @@ jobs:
               python /app/src/data_ingestion/youtube_comments/main.py && \
               python /app/src/scripts/main.py && \
               python /app/src/models/train_model.py && \
+              git config --global user.name 'GitHub Actions' && \
+              git config --global user.email 'actions@github.com' && \
               dvc add /app/data/train.csv && \
               git add /app/data/train.csv.dvc && \
               git commit -m 'Update dataset' && \
