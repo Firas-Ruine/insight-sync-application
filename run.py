@@ -16,7 +16,7 @@ youtube = build('youtube', 'v3', developerKey=API_KEY)
 
 def get_db_connection():
     return psycopg2.connect(
-        dbname=os.getenv("POSTGRES_DB"),
+        dbname=os.getenv("YOUTUBE_DB"),
         user=os.getenv("POSTGRES_USER"),
         password=os.getenv("POSTGRES_PASSWORD"),
         host="postgres",
