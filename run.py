@@ -12,6 +12,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.secret_key = 'flask_app'
 
 MODEL_PATH = 'src/models/emotion_classifier_pipe_lr.pkl'
 try:
