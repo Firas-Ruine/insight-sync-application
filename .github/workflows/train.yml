@@ -6,7 +6,7 @@ on:
   workflow_dispatch: # Run manually
   push:
     branches:
-      - master
+      - main
 
 jobs:
   train_and_deploy:
@@ -39,7 +39,6 @@ jobs:
 
       # Step 5: Configure Google Drive credentials
       - name: Configure Google Drive credentials
-        working-directory: ./application
         env:
           GDRIVE_SERVICE_ACCOUNT_BASE64: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_BASE64 }}
         run: |
@@ -47,19 +46,16 @@ jobs:
 
       # Step 6: Configure DVC Remote
       - name: Configure DVC Remote
-        working-directory: ./application
         run: |
           dvc remote modify storage gdrive_use_service_account true
           dvc remote modify --local storage gdrive_service_account_json_file_path google_services.json
 
       # Step 7: Pull dataset from DVC remote
       - name: Pull dataset
-        working-directory: ./application
         run: dvc pull
 
       # Step 8: Run local preprocessing (Optional)
       - name: Run local preprocessing
-        working-directory: ./application
         run: |
           python src/data_ingestion/youtube_comments/main.py
           python src/scripts/main.py
@@ -79,17 +75,12 @@ jobs:
             set -e
 
             # Navigate to the application directory on the server
-            cd docker/experiments
+            cd docker/experiments/insight-sync-application
 
             # Pull the latest changes
-            git pull origin master
-
-            # Rebuild and redeploy Docker services
-            cd infrastructure
-            docker compose up -d --build
+            git pull origin main
 
             # Rebuild and redeploy Application services
-            cd ../application
             docker compose up -d --build
 
             # Run training commands inside the app container
