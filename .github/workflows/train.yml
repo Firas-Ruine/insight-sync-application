@@ -49,7 +49,7 @@ jobs:
           dvc remote modify storage gdrive_use_service_account true
           dvc remote modify storage gdrive_service_account_json_file_path google_services.json
 
-      # Step 7: Pull dataset from DVC remote
+      # Step 7: Pull dataset from DVC remote storage
       - name: Pull dataset
         run: dvc pull
 
