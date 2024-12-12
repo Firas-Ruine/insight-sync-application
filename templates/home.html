@@ -1,52 +1,83 @@
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Comments</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-      body {
-        background-color: #f8f9fa;
-        font-family: Arial, sans-serif;
-      }
-      .container-fluid {
-        max-width: 800px;
-      }
-      .form-label {
-        font-weight: bold;
-        font-size: 1.1rem;
-      }
-      .btn-primary {
-        background-color: #007bff;
-        border-color: #007bff;
-        transition: background-color 0.3s, transform 0.2s;
-      }
-      .btn-primary:hover {
-        background-color: #0056b3;
-        transform: scale(1.05);
-      }
-      .alert {
-        border-radius: 8px;
-      }
-      .comment {
-        background-color: #ffffff;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 12px;
-        margin-bottom: 12px;
-      }
-      .sentiment {
-        font-size: 0.9rem;
-        font-weight: bold;
-      }
-      .positive {
-        color: #28a745;
-      }
-      .negative {
-        color: #dc3545;
-      }
-      .neutral {
-        color: #6c757d;
-      }
-    </style>
-  </head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Comments</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: Arial, sans-serif;
+    }
+    .container-fluid {
+      max-width: 800px;
+    }
+    .form-label {
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+    .btn-primary {
+      background-color: #007bff;
+      border-color: #007bff;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+    .btn-primary:hover {
+      background-color: #0056b3;
+      transform: scale(1.05);
+    }
+    .alert {
+      border-radius: 8px;
+    }
+    .comment {
+      background-color: #ffffff;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .sentiment {
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+    .positive {
+      color: #28a745;
+    }
+    .negative {
+      color: #dc3545;
+    }
+    .neutral {
+      color: #6c757d;
+    }
+  </style>
+</head>
 {% include 'sidebar.html' %}
+<body>
+<div class="container my-5">
+    <h1 class="text-center mb-4">YouTube Video Sentiments</h1>
+    <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Video ID</th>
+                <th>Video Title</th>
+                <th>Positive Count</th>
+                <th>Negative Count</th>
+                <th>Neutral Count</th>
+                <th>Date Added</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[2] }}</td>
+                <td>{{ row[3] }}</td>
+                <td>{{ row[4] }}</td>
+                <td>{{ row[5] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<!-- Bootstrap JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
