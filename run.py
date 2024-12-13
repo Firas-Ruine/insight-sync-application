@@ -6,10 +6,20 @@ import re
 import psycopg2
 import os
 import logging
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+# Initialize Sentry
+sentry_sdk.init(
+    dsn="https://6e4bf6e3cacce1c0bba82f1266074e05@o4508458067034112.ingest.de.sentry.io/4508458068672592",
+    integrations=[FlaskIntegration()],
+    traces_sample_rate=1.0
+)
 
 app = Flask(__name__)
 app.secret_key = "secret_key"

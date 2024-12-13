@@ -14,3 +14,4 @@ mlflow
 seaborn
 psycopg2
 python-dotenv
+sentry-sdk[flask]
