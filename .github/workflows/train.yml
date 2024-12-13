@@ -28,6 +28,8 @@ jobs:
             set -e
             echo "Pulling latest changes from git repository..."
             cd docker/experiments/insight-sync-application
+            git reset --hard HEAD
+            git clean -fd
             git pull origin main
             echo "Git pull completed successfully."
 
@@ -82,7 +84,10 @@ jobs:
           script: |
             set -e
             echo "Pulling dataset using DVC..."
-            docker exec flask_app_1 bash -c "dvc pull"
+            for i in {1..3}; do
+              docker exec flask_app_1 bash -c "dvc pull" && break || echo "Retrying... ($i)"
+              sleep 5
+            done
             echo "Dataset pulled successfully."
 
       # Step 7: Run data ingestion script
@@ -151,7 +156,12 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             set -e
-            echo "Rebuilding and redeploying the application..."
+            echo "Checking for changes..."
             cd docker/experiments/insight-sync-application
-            docker compose up -d --build
-            echo "Application redeployed successfully."
+            if git diff --quiet HEAD^ HEAD; then
+              echo "No changes detected, skipping redeployment."
+            else
+              echo "Changes detected, redeploying application..."
+              docker compose up -d --build --no-recreate
+              echo "Application redeployed successfully."
+            fi
