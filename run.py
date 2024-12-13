@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = 'flask_app'
+app.secret_key = "secret_key"
 
 MODEL_PATH = 'src/models/emotion_classifier_pipe_lr.pkl'
 try:
@@ -22,7 +22,7 @@ except Exception as e:
     logger.error(f"Failed to load model: {e}")
     model = None
 
-API_KEY = os.getenv("YOUTUBE_API_KEY", "AIzaSyDTWzUmomxive8x9Q_GYmF9CTxmzDJ2qVg")
+API_KEY = os.getenv("YOUTUBE_API_KEY", "YOUR_API_KEY")
 youtube = build('youtube', 'v3', developerKey=API_KEY)
 
 def get_db_connection():
@@ -31,7 +31,7 @@ def get_db_connection():
             dbname=os.getenv("YOUTUBE_DB"),
             user=os.getenv("POSTGRES_USER"),
             password=os.getenv("POSTGRES_PASSWORD"),
-            host=os.getenv("POSTGRES_HOST", "postgres"),
+            host=os.getenv("POSTGRES_HOST", "localhost"),
             port=os.getenv("POSTGRES_PORT", "5432")
         )
         logger.debug("Database connection established.")
@@ -165,6 +165,7 @@ def initialize_database():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
+        logger.info("Checking and creating youtube_video_sentiments table if not exists.")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS youtube_video_sentiments (
                 id SERIAL PRIMARY KEY,
@@ -180,8 +181,11 @@ def initialize_database():
         cur.close()
         conn.close()
         logger.info("Database initialized successfully.")
+    except psycopg2.Error as db_err:
+        logger.error(f"Database error: {db_err.pgerror}")
+        raise
     except Exception as e:
-        logger.error(f"Database initialization failed: {e}")
+        logger.error(f"Unhandled error during database initialization: {e}")
         raise
 
 if __name__ == "__main__":
