@@ -171,6 +171,11 @@ def youtube_route():
     }
     return render_template('youtube.html', comments=comments, sentiment_data=sentiment_data)
 
+@app.route("/test-error")
+def hello_world():
+    1/0  # raises an error
+    return "<p>Hello, World!</p>"
+
 def initialize_database():
     try:
         conn = get_db_connection()
