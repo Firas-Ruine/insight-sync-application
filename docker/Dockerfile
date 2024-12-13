@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y git
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install DVC
+# Install DVC and its dependencies
 RUN pip install dvc[all]
 
 COPY . .
