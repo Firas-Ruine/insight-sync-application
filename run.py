@@ -99,7 +99,7 @@ def youtube_route():
                     csv_file_path = 'src/data_ingestion/youtube_comments/inputs/channels.csv'
                     existing_urls = set()
                     try:
-                        with open(csv_file_path, 'r', encoding='utf-8') as csvfile:
+                        with open(csv_file_path, 'r', newline='', encoding='utf-8') as csvfile:
                             existing_urls = {row[0] for row in csv.reader(csvfile)}
                     except FileNotFoundError:
                         logger.warning("CSV file not found. Creating a new one.")
