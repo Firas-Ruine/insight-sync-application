@@ -12,12 +12,14 @@ def cleanClassifiedComments(input_path, cleaned_output_path):
         print("Error: 'text' column not found in classified comments.")
         return
 
+    # Ensure 'text' column contains valid strings; replace non-strings with an empty string
+    df['text'] = df['text'].apply(lambda x: x if isinstance(x, str) else "")
+    
     # Clean comments using neattext
     df['cleaned_text'] = df['text'].apply(nfx.remove_special_characters)
     df['cleaned_text'] = df['cleaned_text'].apply(nfx.remove_userhandles)
     df['cleaned_text'] = df['cleaned_text'].apply(nfx.remove_stopwords)
     df['cleaned_text'] = df['cleaned_text'].apply(nfx.remove_emojis)
-    
 
     # Save the cleaned comments to a new CSV file
     df.to_csv(cleaned_output_path, index=False)
