@@ -22,7 +22,7 @@ except Exception as e:
     logger.error(f"Failed to load model: {e}")
     model = None
 
-API_KEY = os.getenv("YOUTUBE_API_KEY", "YOUR_API_KEY")
+API_KEY = "AIzaSyDTWzUmomxive8x9Q_GYmF9CTxmzDJ2qVg"
 youtube = build('youtube', 'v3', developerKey=API_KEY)
 
 def get_db_connection():

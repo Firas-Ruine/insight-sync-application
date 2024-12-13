@@ -13,3 +13,4 @@ flask
 mlflow
 seaborn
 psycopg2
+python-dotenv
